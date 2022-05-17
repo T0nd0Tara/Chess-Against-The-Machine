@@ -1,6 +1,7 @@
 #pragma once
 #include <olcPixelGameEngine.h>
 #define DECAL_PIECE_SIZE olc::vi2d{64,64}
+
 enum class Color: uint8_t{
 	WHITE,
 	BLACK
@@ -49,6 +50,5 @@ public:
 	};
 	void inline draw(olc::PixelGameEngine* pge, olc::Decal* decal, olc::vi2d cellSize){
         pge->DrawPartialDecal(cellSize * m_pos, cellSize, decal, m_sprite_cords * DECAL_PIECE_SIZE ,DECAL_PIECE_SIZE);
-
     }
 };
