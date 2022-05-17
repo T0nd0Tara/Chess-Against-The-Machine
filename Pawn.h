@@ -5,7 +5,6 @@ class Pawn: public Piece{
     bool bFirstMove;
 public:
     explicit Pawn(olc::vi2d pos, Color c): Piece(pos, c){
-        
         m_sprite_cords = olc::vi2d{5, (int)c};
         bFirstMove = true;
     }
@@ -19,7 +18,7 @@ public:
             out.push_back(Move(m_pos, end_pos));
         }
         end_pos = m_pos + 2*olc::vi2d{0, nMoveDir};
-        if (bFirstMove && empty(board, end_pos)){
+        if (bFirstMove && empty(board, end_pos) && empty(board, m_pos + olc::vi2d{0, nMoveDir})){
             out.push_back(Move(m_pos, end_pos));
         }
 
@@ -38,8 +37,9 @@ public:
         }
         return out;
     }
-    bool moveTo(Move move, Piece* board[8][8]){
+    bool moveTo(Move move, Piece* board[8][8]) override {
         bool hasMoved = Piece::moveTo(move, board);
+        // TODO: fix bug - bFirstMove doesn't change after first move
         if (hasMoved)
             bFirstMove = false;
         return hasMoved;
