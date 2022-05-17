@@ -1,6 +1,6 @@
 #pragma once
 #include "common.h"
-#include "Knight.h"
+#include "Rook.h"
 #include "Bishop.h"
 
 class Queen: public Piece{
@@ -12,7 +12,7 @@ public:
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
         // we check where it could go if it was a Knight and if it was a Bishop
         // and merge the results
-        Knight k(m_pos, m_col);
+        Rook k(m_pos, m_col);
         Bishop b(m_pos, m_col);
 		std::vector<Move> out = k.getMoves(board);
         for (auto& m: b.getMoves(board)){
