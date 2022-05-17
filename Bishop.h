@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include <iostream>
 
 class Bishop: public Piece{
 public:
@@ -9,8 +10,9 @@ public:
 	}
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
+
 		// NW
-        for (int i=0; i<8; i++){
+        for (int i=1; i<8; i++){
             olc::vi2d end_pos = m_pos + olc::vi2d{-i,-i};
             if (end_pos.x < 0 || end_pos.y < 0) break;
             if (empty(board, end_pos)) out.push_back(Move(m_pos, end_pos));
@@ -20,9 +22,10 @@ public:
                 break;
             }
         }
+
         // NE
-        for (int i=0; i<8; i++){
-            olc::vi2d end_pos = m_pos + olc::vi2d{-i,i};
+        for (int i=1; i<8; i++){
+            olc::vi2d end_pos = m_pos + olc::vi2d{i,-i};
             if (end_pos.x > 7 || end_pos.y < 0) break;
             if (empty(board, end_pos)) out.push_back(Move(m_pos, end_pos));
             else{
@@ -33,8 +36,8 @@ public:
         }
 
         // SW
-        for (int i=0; i<8; i++){
-            olc::vi2d end_pos = m_pos + olc::vi2d{i,-i};
+        for (int i=1; i<8; i++){
+            olc::vi2d end_pos = m_pos + olc::vi2d{-i,i};
             if (end_pos.x < 0 || end_pos.y > 7) break;
             if (empty(board, end_pos)) out.push_back(Move(m_pos, end_pos));
             else{
@@ -45,7 +48,7 @@ public:
         }
 
         // SE
-        for (int i=0; i<8; i++){
+        for (int i=1; i<8; i++){
             olc::vi2d end_pos = m_pos + olc::vi2d{i,i};
             if (end_pos.x > 7 || end_pos.y > 7) break;
             if (empty(board, end_pos)) out.push_back(Move(m_pos, end_pos));
