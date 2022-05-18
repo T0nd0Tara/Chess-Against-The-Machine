@@ -22,9 +22,6 @@ protected:
 	Color m_col;
     olc::vi2d m_sprite_cords;
 
-    static inline bool empty(Piece* board[8][8], olc::vi2d cell){
-        return !board[cell.y][cell.x];
-    }
 public:
     explicit Piece(const Piece& p){
         m_pos = p.m_pos;
@@ -32,10 +29,12 @@ public:
         m_sprite_cords = p.m_sprite_cords;
     }
     explicit Piece(olc::vi2d pos={0,0}, Color c=Color::WHITE): m_pos(pos), m_col(c){}
+    static inline bool empty(Piece* board[8][8], olc::vi2d cell){ return !board[cell.y][cell.x]; }
 	Color getCol() const { return m_col;}
     olc::vi2d getPos() const {return m_pos;}
     virtual std::vector<Move> getMoves(Piece* (*)[8]) = 0;
-    virtual int getValue() = 0;
+    virtual inline const int getValue() = 0;
+    virtual inline const bool isPawn() { return false; }
 	virtual bool moveTo(Move move, Piece* board[8][8]) {
 		// Invalid starting point for move
 		if (move.vFrom != m_pos)
