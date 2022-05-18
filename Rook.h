@@ -7,7 +7,7 @@ public:
 	explicit Rook(olc::vi2d pos, Color c): Piece(pos, c){
 		m_sprite_cords = olc::vi2d{4, (int)c};
 	}
-    int getValue() override { return 50; }
+    inline const int getValue() override { return 50; }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
 		// north

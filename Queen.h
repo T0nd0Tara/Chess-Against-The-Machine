@@ -9,7 +9,7 @@ public:
 	explicit Queen(olc::vi2d pos, Color c): Piece(pos, c){
 		m_sprite_cords = olc::vi2d{1, (int)c};
 	}
-    int getValue() override { return 90; }
+    inline const int getValue() override { return 90; }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
         // we check where it could go if it was a Knight and if it was a Bishop
         // and merge the results

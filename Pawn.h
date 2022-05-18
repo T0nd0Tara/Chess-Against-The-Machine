@@ -8,7 +8,8 @@ public:
         m_sprite_cords = olc::vi2d{5, (int)c};
         bFirstMove = true;
     }
-    int getValue() override { return 10; }
+    inline const int getValue() override { return 10; }
+    inline const bool isPawn() override { return true; }
     std::vector<Move> getMoves(Piece* board[8][8]) override{
         std::vector<Move> out;
         olc::vi2d end_pos;
