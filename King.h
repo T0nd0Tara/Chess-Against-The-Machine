@@ -7,7 +7,7 @@ public:
 	explicit King(olc::vi2d pos, Color c): Piece(pos, c){
 		m_sprite_cords = olc::vi2d{0, (int)c};
 	}
-    size_t getValue() override { return 2000U; }
+    int getValue() override { return 2000; }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
         for (int y =-1; y<2; y++)
