@@ -36,18 +36,34 @@ public:
 		vWhites = getColor(board, Color::WHITE);
 	}
 
+// evaluateBoard(board) =
+// 	  20000(K-K')
+// 	+ 90(Q-Q')
+// 	+ 50(R-R')
+// 	+ 30(B-B' + N-N')
+// 	+ 10(P-P')
+// 	- 5(D-D' + S-S' + I-I')
+// 	+ 1(M-M')
+
+// KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
+// D,S,I = doubled, blocked and isolated pawns
+// M = Mobility (the number of legal moves)
 	static int evaluateBoard(Piece* board[8][8]){
 		int out = 0;
 		std::vector<Piece*>
 			vBoardBlacks = getColor(board, Color::BLACK),
 			vBoardWhites = getColor(board, Color::WHITE);
 
-		for (auto& p: vBoardBlacks)
-			out += p->getValue();
-		for (auto& p: vBoardWhites)
-			out -= p->getValue();
-
-		// doubled, blocked and isolated pawns
+		for (auto& p: vBoardBlacks){
+			out += p->getValue() // value
+				+ (int)p->getMoves(board).size(); // mobility
+		}
+			
+		for (auto& p: vBoardWhites){
+			out -= p->getValue() // value
+				+ (int)p->getMoves(board).size(); // mobility
+		}
+			
 		int total = 0;
 		for (int8_t x=0; x<8; x++){
 			int nWPawns = 0, nBPawns = 0,
@@ -85,8 +101,8 @@ public:
 				}
 				else{
 					nWPawns++;
-					if (y < 7)
-						if (!Piece::empty(board, olc::vi2d{x, y+1}))
+					if (y > 0)
+						if (!Piece::empty(board, olc::vi2d{x, y-1}))
 							nWBlocked++;
 					if (bIsolated) nWIsolate++;
 				}
@@ -99,26 +115,10 @@ public:
 		}
 		out -= 5 * total;
 
-		// mobility
-		for (auto& p: vBoardBlacks)
-			out += (int)p->getMoves(board).size();
-		for (auto& p: vBoardWhites)
-			out -= (int)p->getMoves(board).size();
-		
+
 		return out;
 			
 	}
-// f(p) = 200(K-K')
-// 	+ 9(Q-Q')
-// 	+ 5(R-R')
-// 	+ 3(B-B' + N-N')
-// 	+ 1(P-P')
-// 	- 0.5(D-D' + S-S' + I-I')
-// 	+ 0.1(M-M') + ...
-
-// KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-// D,S,I = doubled, blocked and isolated pawns
-// M = Mobility (the number of legal moves)
 	void play(){
 		vBlacks = getColor(m_board, Color::BLACK);
 		vWhites = getColor(m_board, Color::WHITE);
