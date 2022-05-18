@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 #include <vector>
 #include <chrono>
 #include <unistd.h>
@@ -75,8 +76,8 @@ public:
 		dPieces = new olc::Decal(new olc::Sprite("Chess_Pieces_Sprite.png"));
 
 		turn = Color::WHITE;
-
 		com = new Computer(board);
+
 
 #pragma region Setup Pieces
 		// Pawns
@@ -164,7 +165,11 @@ public:
 					bAssaignSelected = false;
 				}
 			}
-				
+			// don't assaign if player click on black
+			if (!Piece::empty(board, vMousePos))
+				if (board[vMousePos.y][vMousePos.x]->getCol() == Color::BLACK)
+					bAssaignSelected = false;
+			
 					
 			if (bAssaignSelected)
 				selectedPiece = board[vMousePos.y][vMousePos.x];
@@ -199,6 +204,15 @@ public:
 
 		// drawing pieces
 		drawPieces();
+		
+		auto eval_start = std::chrono::high_resolution_clock::now();
+		int nComEval = Computer::evaluateBoard(board);
+		auto eval_end = std::chrono::high_resolution_clock::now();
+		int nEvalTime = std::chrono::duration_cast<std::chrono::microseconds>(eval_end - eval_start).count();
+
+		DrawStringDecal({11,11}, std::to_string(nComEval)+ ": " + std::to_string(nEvalTime),olc::BLACK);
+		DrawStringDecal({10,10}, std::to_string(nComEval)+ ": " + std::to_string(nEvalTime),olc::RED);
+		
 
 		auto clock_end = std::chrono::high_resolution_clock::now();
 		double nTime = std::chrono::duration_cast<std::chrono::microseconds>(clock_end - clock_start).count();
