@@ -8,6 +8,7 @@ public:
         m_sprite_cords = olc::vi2d{5, (int)c};
         bFirstMove = true;
     }
+    size_t getValue() override { return 10U; }
     std::vector<Move> getMoves(Piece* board[8][8]) override{
         std::vector<Move> out;
         olc::vi2d end_pos;

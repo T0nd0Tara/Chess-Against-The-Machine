@@ -8,6 +8,7 @@ public:
 	explicit Bishop(olc::vi2d pos, Color c): Piece(pos, c){
 		m_sprite_cords = olc::vi2d{2, (int)c};
 	}
+    size_t getValue() override { return 30U; }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
 

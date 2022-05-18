@@ -35,6 +35,7 @@ public:
 	Color getCol() const { return m_col;}
     olc::vi2d getPos() const {return m_pos;}
     virtual std::vector<Move> getMoves(Piece* (*)[8]) = 0;
+    virtual size_t getValue() = 0;
 	virtual bool moveTo(Move move, Piece* board[8][8]) {
 		// Invalid starting point for move
 		if (move.vFrom != m_pos)
