@@ -40,14 +40,13 @@ public:
 		if (move.vFrom != m_pos)
 			return false;
 
-		for (auto m: getMoves(board)){
-			if (move.vTo == m.vTo){
-				m_pos = move.vTo;
-				return true;
-			}
-		}
-		// Invalid move
-		return false;
+        if (move.eaten) delete board[move.vTo.y][move.vTo.x];
+        board[move.vTo.y][move.vTo.x] = board[move.vFrom.y][move.vFrom.x];
+        m_pos = move.vTo;
+        board[move.vFrom.y][move.vFrom.x] = nullptr;
+        
+        return true;
+
 	};
 	void inline draw(olc::PixelGameEngine* pge, olc::Decal* decal, olc::vi2d cellSize){
         pge->DrawPartialDecal(cellSize * m_pos, cellSize, decal, m_sprite_cords * DECAL_PIECE_SIZE ,DECAL_PIECE_SIZE);

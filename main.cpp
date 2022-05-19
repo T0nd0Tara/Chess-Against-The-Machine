@@ -31,21 +31,18 @@ public:
 	
 	~Chess(){
 		for (int y=0; y<8; y++)
-		{
 			for (int x=0; x<8; x++){
 				if (board[y][x])
 					delete board[y][x];
 			}
-			delete[] board[y];
-		}
+		
 
-		delete[] board;
 		if(dPieces) delete dPieces;
 		if (com) delete com;
 	}
 private:
 	olc::vi2d vCellSize;
-	Piece* board[8][8];
+	Piece* board[8][8] = { { nullptr } };
 	olc::Decal* dPieces;
 	Piece* selectedPiece = nullptr;
 	
@@ -67,11 +64,6 @@ public:
 	bool OnUserCreate() override
 	{
 		vCellSize = olc::vi2d{ScreenWidth() >> 3, ScreenHeight() >> 3};
-
-		for (int y=0; y<8; y++)
-			for (int x=0; x<8; x++)
-				board[y][x] = nullptr;
-
 
 		dPieces = new olc::Decal(new olc::Sprite("Chess_Pieces_Sprite.png"));
 
@@ -154,12 +146,7 @@ public:
 											[vMousePos](Move m){return m.vTo == vMousePos;})
 						,
 						move != vMoves.end()){
-					olc::vi2d pos1 = selectedPiece->getPos();
-					olc::vi2d pos2 = move->vTo;
 					selectedPiece->moveTo(*move, board);
-					if (move->eaten) delete move->eaten;
-					board[pos2.y][pos2.x] = board[pos1.y][pos1.x];
-					board[pos1.y][pos1.x] = nullptr;
 					selectedPiece = nullptr;
 					turn = Color::BLACK;
 					bAssaignSelected = false;
