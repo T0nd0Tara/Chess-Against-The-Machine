@@ -32,6 +32,7 @@ public:
     virtual std::vector<Move> getMoves(Piece* (*)[8]) = 0;
     virtual inline const int getValue() = 0;
     virtual inline const bool isPawn() { return false; }
+    virtual inline const bool isKing() { return false; }
     virtual inline Piece* clone() const = 0;
 	virtual bool moveTo(Move move, Piece* board[8][8]) {
 		// Invalid starting point for move

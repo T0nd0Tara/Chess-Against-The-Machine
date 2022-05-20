@@ -9,6 +9,7 @@ public:
 	}
     inline const int getValue() override { return 2000; }
     inline Piece* clone() const override { return new King(*this); }
+    inline const bool isKing() override { return true; }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
         for (int y =-1; y<2; y++)
