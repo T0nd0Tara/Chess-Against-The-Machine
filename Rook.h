@@ -8,6 +8,7 @@ public:
 		m_sprite_cords = olc::vi2d{4, (int)c};
 	}
     inline const int getValue() override { return 50; }
+    inline Piece* clone() const override { return new Rook(*this); }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
 		std::vector<Move> out;
 		// north

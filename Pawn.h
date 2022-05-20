@@ -9,6 +9,7 @@ public:
         bFirstMove = true;
     }
     inline const int getValue() override { return 10; }
+    inline Piece* clone() const override { return new Pawn(*this); }
     inline const bool isPawn() override { return true; }
     std::vector<Move> getMoves(Piece* board[8][8]) override{
         std::vector<Move> out;

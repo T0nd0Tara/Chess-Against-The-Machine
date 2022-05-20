@@ -7,6 +7,7 @@ public:
         m_sprite_cords = olc::vi2d{3, (int)c};
     }
     inline const int getValue() override { return 30; }
+    inline Piece* clone() const override { return new Knight(*this); }
     std::vector<Move> getMoves(Piece* board[8][8]) override{
         std::vector<Move> out;
         std::vector<olc::vi2d> vDest = {

@@ -10,6 +10,7 @@ public:
 		m_sprite_cords = olc::vi2d{1, (int)c};
 	}
     inline const int getValue() override { return 90; }
+    inline Piece* clone() const override { return new Queen(*this); }
 	std::vector<Move> getMoves(Piece* board[8][8]) override{
         // we check where it could go if it was a Knight and if it was a Bishop
         // and merge the results
