@@ -26,6 +26,9 @@ public:
                 }
             }
 
+        out.erase(std::remove_if(out.begin(), out.end(),
+                    [this, board](Move& m){ return illegitimateMove(board, m);}),
+                    out.end());
 		return out;
 	}
 	

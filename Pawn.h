@@ -38,6 +38,9 @@ public:
             if (board[end_pos.y][end_pos.x]->getCol() != m_col)
                 out.push_back(Move(m_pos, end_pos, board[end_pos.y][end_pos.x]));
         }
+        out.erase(std::remove_if(out.begin(), out.end(),
+                    [this, board](Move& m){ return illegitimateMove(board, m);}),
+                    out.end());
         return out;
     }
     bool moveTo(Move move, Piece* board[8][8]) override {
