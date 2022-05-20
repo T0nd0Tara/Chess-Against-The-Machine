@@ -7,17 +7,21 @@ class Computer;
 struct Node{
 	Piece* (*board)[8];
 	Move* move;
-	std::vector<Node> vChildren;
+	std::vector<Node*> vChildren;
 
-	Node(Piece* (*board_)[8], Move* m):board(board_), move(m), vChildren(std::vector<Node>()) {}
+	Node(Piece* (*board_)[8], Move* m):board(board_), move(m), vChildren(std::vector<Node*>()) {}
 	Node() = delete;
 	Node(const Node&) = delete;
-	Node(Node&& rvalue) = default;
+	Node(Node&&) = default;
 	~Node(){
-		for (int8_t y=0; y<8; y++)
-			for (int8_t x=0; x<8; x++){
-				if (board[y][x]) delete board[y][x];
+		for (int8_t y=0; y<8; y++){
+            for (int8_t x=0; x<8; x++){
+				if (board[y][x]) delete board[y][x]; //free(board[y][x]);
 			}
+        }
+        delete[] board;
+        for (size_t i=0; i<vChildren.size(); i++)
+            if (vChildren[i]) delete vChildren[i];
 
 		if (move) delete move;
 	}
@@ -32,9 +36,13 @@ class Computer{
 	static std::vector<Piece*> getColor(Piece* board[8][8], Color c){
 		std::vector<Piece*> vOut;
 		for (int y=0; y<8; y++) for (int x=0; x<8; x++)
-				if (board[y][x]) 
-					if (board[y][x]->getCol() == c)
-						vOut.push_back(board[y][x]);
+				{
+					if (board[y][x] != nullptr) 
+					{
+						if (board[y][x]->getCol() == c)
+							vOut.push_back(board[y][x]);
+					}
+				}
 		return vOut;
 	}
 public:
@@ -43,17 +51,20 @@ public:
 	{
 		//m_board = board;
 
-		vBlacks = getColor(board, Color::BLACK);
-		vWhites = getColor(board, Color::WHITE);
+		//vBlacks = getColor(board, Color::BLACK);
+		//vWhites = getColor(board, Color::WHITE);
 	}
 
 	static auto boardCopy(Piece* (*board)[8]){
 		Piece* (*out)[8] = new Piece*[8][8];
-		const size_t size = sizeof(Piece);
+
 		for (int8_t y=0; y<8; y++)
 			for (int8_t x=0; x<8; x++){
+                out[y][x] = nullptr;
 				if (board[y][x]){
-					memcpy(&out[y][x], &board[y][x],size);
+                    //out[y][x] = (Piece*)malloc(sizeof(Piece));
+					//memcpy(out[y][x], board[y][x],sizeof(Piece));
+                    out[y][x] = board[y][x]->clone();
 				}
 			}
 
@@ -66,51 +77,39 @@ public:
 // for each child of node do
 //     value := max(value, −negamax(child, depth − 1, −color))
 // return value
-	static std::pair<Move, int> negamax(const Node& node, int nDepth, Color c){
+	static int negamax(const Node* node, int nDepth, Color c){
 		if (nDepth == 0 /*|| isCheckMate(node.board)*/)
-			return std::make_pair<Move,int>(Move(*node.move), evaluateBoard(node.board));
+			return evaluateBoard(node->board);
 		int val = INT_MIN;
 		//auto max = [](int a, int b) { return (a>b)? a : b; };
 		Color opCol = (c == Color::WHITE)? Color::BLACK : Color::WHITE;
-		Move* outMove = nullptr;
-		for (auto& n: node.vChildren){
-			auto [childMove, childVal] = negamax(n, nDepth-1, opCol);
+		for (auto& n: node->vChildren){
+			int childVal = negamax(n, nDepth-1, opCol);
 			childVal = -childVal;
 			if (val < childVal){
 				val = childVal;
-				if (outMove) delete outMove;
-				outMove = new Move(childMove);
 			}
 		}
-		return std::make_pair<Move,int>(Move(*outMove), (int)val);
+		return (int)val;
 	}
 
-	static void initTree(Node& node, int nDepth, Color moveBy){
+	static void initTree(Node* node, int nDepth, Color moveBy){
 		if (nDepth == 0) return;
+
 		Color opCol = (moveBy == Color::WHITE)? Color::BLACK : Color::WHITE;
-		std::vector<Piece*> vAvailPieces = getColor(node.board, opCol);
+		std::vector<Piece*> vAvailPieces = getColor(node->board, opCol);
 		for (auto& p : vAvailPieces)
-			for (auto& m : p->getMoves(node.board)){
+			for (auto& m : p->getMoves(node->board)){
+
 				olc::vi2d pos = p->getPos();
-				node.vChildren.push_back(Node(boardCopy(node.board), new Move(m)));
-				node.vChildren.back().board[pos.y][pos.x]->moveTo(m, node.vChildren.back().board);
-				initTree(node.vChildren.back(), nDepth-1, opCol);
+                //Node newNode();
+				node->vChildren.push_back(new Node(boardCopy(node->board), new Move(m)));
+				auto back = node->vChildren.back()->board;
+				back[pos.y][pos.x]->moveTo(m, back);
+				initTree(node->vChildren.back(), nDepth-1, opCol);
 			}
 	}
 
-
-// evaluateBoard(board) =
-// 	  20000(K-K')
-// 	+ 90(Q-Q')
-// 	+ 50(R-R')
-// 	+ 30(B-B' + N-N')
-// 	+ 10(P-P')
-// 	- 5(D-D' + S-S' + I-I')
-// 	+ 1(M-M')
-
-// KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-// D,S,I = doubled, blocked and isolated pawns
-// M = Mobility (the number of legal moves)
 	static int evaluateBoard(Piece* (*board)[8]){
 		int out = 0;
 		std::vector<Piece*>
@@ -181,7 +180,28 @@ public:
 			
 	}
 	void play(){
-		vBlacks = getColor(m_board, Color::BLACK);
-		vWhites = getColor(m_board, Color::WHITE);
+		// vBlacks = getColor(m_board, Color::BLACK);
+		// vWhites = getColor(m_board, Color::WHITE);
+
+		Node currState(boardCopy(m_board), nullptr);
+		constexpr int nDepth = 3;
+		// We're assuming that the last move been done by White
+		initTree(&currState, nDepth, Color::WHITE);
+		std::cerr << "---- initTree FINISHED ----\n";
+		int nMaxNodeIndex = -1;
+		int nMaxValue = INT_MIN;
+		for (int i=0; i<currState.vChildren.size(); i++){
+			const Node* node = currState.vChildren[i];
+			int nNodeVal = negamax(node,nDepth-1, Color::BLACK);
+			if (nNodeVal > nMaxValue){
+				nMaxValue = nNodeVal;
+				nMaxNodeIndex = i;
+			}
+		}
+		assert(nMaxNodeIndex > -1 && "Couldn't find any node for some reason");
+
+		Move& move = *currState.vChildren[nMaxNodeIndex]->move;
+		m_board[move.vFrom.y][move.vFrom.x]->moveTo(move, m_board);
+		
 	}
 };
