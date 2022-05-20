@@ -1,6 +1,11 @@
 #pragma once
 #include <vector>
+
+#include <olcPixelGameEngine.h>
+
 #include "common.h"
+
+
 
 class Computer;
 
@@ -33,43 +38,11 @@ class Computer{
 
 	std::vector<Piece*> vBlacks, vWhites;
 
-	static std::vector<Piece*> getColor(Piece* board[8][8], Color c){
-		std::vector<Piece*> vOut;
-		for (int y=0; y<8; y++) for (int x=0; x<8; x++)
-				{
-					if (board[y][x] != nullptr) 
-					{
-						if (board[y][x]->getCol() == c)
-							vOut.push_back(board[y][x]);
-					}
-				}
-		return vOut;
-	}
+
 public:
-	Computer(Piece* (*board)[8])
-	:m_board(board)
-	{
-		//m_board = board;
+	Computer(Piece* (*board)[8]): m_board(board){}
 
-		//vBlacks = getColor(board, Color::BLACK);
-		//vWhites = getColor(board, Color::WHITE);
-	}
 
-	static auto boardCopy(Piece* (*board)[8]){
-		Piece* (*out)[8] = new Piece*[8][8];
-
-		for (int8_t y=0; y<8; y++)
-			for (int8_t x=0; x<8; x++){
-                out[y][x] = nullptr;
-				if (board[y][x]){
-                    //out[y][x] = (Piece*)malloc(sizeof(Piece));
-					//memcpy(out[y][x], board[y][x],sizeof(Piece));
-                    out[y][x] = board[y][x]->clone();
-				}
-			}
-
-		return out;
-	}
 // function negamax(node, depth, color) is
 // if depth = 0 or node is a terminal node then
 //     return color × the heuristic value of node
@@ -97,13 +70,13 @@ public:
 		if (nDepth == 0) return;
 
 		Color opCol = (moveBy == Color::WHITE)? Color::BLACK : Color::WHITE;
-		std::vector<Piece*> vAvailPieces = getColor(node->board, opCol);
+		std::vector<Piece*> vAvailPieces = misc::getColor(node->board, opCol);
 		for (auto& p : vAvailPieces)
 			for (auto& m : p->getMoves(node->board)){
 
 				olc::vi2d pos = p->getPos();
                 //Node newNode();
-				node->vChildren.push_back(new Node(boardCopy(node->board), new Move(m)));
+				node->vChildren.push_back(new Node(misc::boardCopy(node->board), new Move(m)));
 				auto back = node->vChildren.back()->board;
 				back[pos.y][pos.x]->moveTo(m, back);
 				initTree(node->vChildren.back(), nDepth-1, opCol);
@@ -113,8 +86,8 @@ public:
 	static int evaluateBoard(Piece* (*board)[8]){
 		int out = 0;
 		std::vector<Piece*>
-			vBoardBlacks = getColor(board, Color::BLACK),
-			vBoardWhites = getColor(board, Color::WHITE);
+			vBoardBlacks = misc::getColor(board, Color::BLACK),
+			vBoardWhites = misc::getColor(board, Color::WHITE);
 
 		for (auto& p: vBoardBlacks){
 			out += p->getValue() // value
@@ -179,15 +152,18 @@ public:
 		return out;
 			
 	}
+    
+    
+
 	void play(){
 		// vBlacks = getColor(m_board, Color::BLACK);
 		// vWhites = getColor(m_board, Color::WHITE);
 
-		Node currState(boardCopy(m_board), nullptr);
+		Node currState(misc::boardCopy(m_board), nullptr);
 		constexpr int nDepth = 3;
 		// We're assuming that the last move been done by White
 		initTree(&currState, nDepth, Color::WHITE);
-		std::cerr << "---- initTree FINISHED ----\n";
+		
 		int nMaxNodeIndex = -1;
 		int nMaxValue = INT_MIN;
 		for (int i=0; i<currState.vChildren.size(); i++){
