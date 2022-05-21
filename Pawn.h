@@ -39,7 +39,7 @@ public:
                 out.push_back(Move(m_pos, end_pos, board[end_pos.y][end_pos.x]));
         }
         out.erase(std::remove_if(out.begin(), out.end(),
-                    [this, board](Move& m){ return illegitimateMove(board, m);}),
+                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
                     out.end());
         return out;
     }
