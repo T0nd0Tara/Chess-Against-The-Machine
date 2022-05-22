@@ -11,7 +11,7 @@ public:
     inline const int getValue() override { return 10; }
     inline Piece* clone() const override { return new Pawn(*this); }
     inline const bool isPawn() override { return true; }
-    std::vector<Move> getMoves(Piece* board[8][8]) override{
+    std::vector<Move> getMoves(Piece* board[8][8], bool removeCheck = true) override{
         std::vector<Move> out;
         olc::vi2d end_pos;
         int nMoveDir = (m_col == Color::WHITE)? -1 : 1;
@@ -38,9 +38,12 @@ public:
             if (board[end_pos.y][end_pos.x]->getCol() != m_col)
                 out.push_back(Move(m_pos, end_pos, board[end_pos.y][end_pos.x]));
         }
-        out.erase(std::remove_if(out.begin(), out.end(),
-                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
-                    out.end());
+
+        // remove moves if they're resaulting in check
+        if (removeCheck)
+            out.erase(std::remove_if(out.begin(), out.end(),
+                        [board](Move& m){ return misc::illegitimateMove(board, m);}),
+                        out.end());
         return out;
     }
     bool moveTo(Move move, Piece* board[8][8]) override {

@@ -10,7 +10,7 @@ public:
     inline const int getValue() override { return 2000; }
     inline Piece* clone() const override { return new King(*this); }
     inline const bool isKing() override { return true; }
-	std::vector<Move> getMoves(Piece* board[8][8]) override{
+	std::vector<Move> getMoves(Piece* board[8][8], bool removeCheck = true) override{
 		std::vector<Move> out;
         for (int y =-1; y<2; y++)
             for (int x =-1; x<2; x++){
@@ -26,9 +26,11 @@ public:
                 }
             }
 
-        out.erase(std::remove_if(out.begin(), out.end(),
-                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
-                    out.end());
+        // remove moves if they're resaulting in check
+        if (removeCheck)
+            out.erase(std::remove_if(out.begin(), out.end(),
+                        [board](Move& m){ return misc::illegitimateMove(board, m);}),
+                        out.end());
 		return out;
 	}
 	

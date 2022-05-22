@@ -51,14 +51,13 @@ public:
 //     value := max(value, −negamax(child, depth − 1, −color))
 // return value
 	static int negamax(const Node* node, int nDepth, Color c){
-		if (nDepth == 0 /*|| isCheckMate(node.board)*/)
-			return evaluateBoard(node->board);
-		int val = INT_MIN;
-		//auto max = [](int a, int b) { return (a>b)? a : b; };
 		Color opCol = (c == Color::WHITE)? Color::BLACK : Color::WHITE;
+		if (nDepth == 0 || misc::isMate(node->board, opCol))
+			return evaluateBoard(node->board);
+
+		int val = INT_MIN;
 		for (auto& n: node->vChildren){
-			int childVal = negamax(n, nDepth-1, opCol);
-			childVal = -childVal;
+			int childVal = -negamax(n, nDepth-1, opCol);
 			if (val < childVal){
 				val = childVal;
 			}
@@ -149,6 +148,8 @@ public:
 		
 		}
 		out -= 5 * total;
+
+        // if there is 
 		return out;
 			
 	}
@@ -167,6 +168,9 @@ public:
 		int nMaxNodeIndex = -1;
 		int nMaxValue = INT_MIN;
 		for (int i=0; i<currState.vChildren.size(); i++){
+            if (i==9){
+                std::cout << "i==9";
+            }
 			const Node* node = currState.vChildren[i];
 			int nNodeVal = negamax(node,nDepth-1, Color::BLACK);
 			if (nNodeVal > nMaxValue){

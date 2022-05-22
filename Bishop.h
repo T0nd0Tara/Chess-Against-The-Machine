@@ -10,7 +10,7 @@ public:
 	}
     inline const int getValue() override { return 30; }
     inline Piece* clone() const override { return new Bishop(*this); }
-	std::vector<Move> getMoves(Piece* board[8][8]) override{
+	std::vector<Move> getMoves(Piece* board[8][8], bool removeCheck = true) override{
 		std::vector<Move> out;
 
 		// NW
@@ -61,9 +61,11 @@ public:
             }
         }
 
-        out.erase(std::remove_if(out.begin(), out.end(),
-                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
-                    out.end());
+        // remove moves if they're resaulting in check
+        if (removeCheck)
+            out.erase(std::remove_if(out.begin(), out.end(),
+                        [board](Move& m){ return misc::illegitimateMove(board, m);}),
+                        out.end());
 		return out;
 	}
 

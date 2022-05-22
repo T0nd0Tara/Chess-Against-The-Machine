@@ -9,7 +9,7 @@ public:
 	}
     inline const int getValue() override { return 50; }
     inline Piece* clone() const override { return new Rook(*this); }
-	std::vector<Move> getMoves(Piece* board[8][8]) override{
+	std::vector<Move> getMoves(Piece* board[8][8], bool removeCheck = true) override{
 		std::vector<Move> out;
 		// north
 		for (int y = m_pos.y-1; y >= 0; y--){
@@ -57,9 +57,12 @@ public:
 				break;
 			}
 		}
-        out.erase(std::remove_if(out.begin(), out.end(),
-                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
-                    out.end());
+
+        // remove moves if they're resaulting in check
+        if (removeCheck)
+            out.erase(std::remove_if(out.begin(), out.end(),
+                        [board](Move& m){ return misc::illegitimateMove(board, m);}),
+                        out.end());
 		return out;
 	}
 

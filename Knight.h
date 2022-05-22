@@ -8,7 +8,7 @@ public:
     }
     inline const int getValue() override { return 30; }
     inline Piece* clone() const override { return new Knight(*this); }
-    std::vector<Move> getMoves(Piece* board[8][8]) override{
+    std::vector<Move> getMoves(Piece* board[8][8], bool removeCheck = true) override{
         std::vector<Move> out;
         std::vector<olc::vi2d> vDest = {
             {-2, -1}, {-2, +1},
@@ -28,9 +28,12 @@ public:
                 out.push_back(Move(m_pos, end_pos, board[end_pos.y][end_pos.x]));
             }
         }
-        out.erase(std::remove_if(out.begin(), out.end(),
-                    [board](Move& m){ return misc::illegitimateMove(board, m);}),
-                    out.end());
+
+        // remove moves if they're resaulting in check
+        if (removeCheck)
+            out.erase(std::remove_if(out.begin(), out.end(),
+                        [board](Move& m){ return misc::illegitimateMove(board, m);}),
+                        out.end());
         return out;
     }
 };
