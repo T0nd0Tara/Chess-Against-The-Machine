@@ -1,11 +1,14 @@
 #pragma once
 #include <vector>
+#include <mutex>
+#include <syncstream>
 
 #include <olcPixelGameEngine.h>
 
 #include "common.h"
 
-
+#define MAX_THREADS 16
+#define DEPTH_SEARCH 3
 
 class Computer;
 
@@ -52,8 +55,15 @@ public:
 // return value
 	static int negamax(const Node* node, int nDepth, Color c){
 		Color opCol = (c == Color::WHITE)? Color::BLACK : Color::WHITE;
-		if (nDepth == 0 || misc::isMate(node->board, opCol))
-			return evaluateBoard(node->board);
+		if (nDepth == 0 || misc::isMate(node->board, opCol)){
+            auto start = std::chrono::high_resolution_clock::now();
+            int out = evaluateBoard(node->board, c);
+            auto end = std::chrono::high_resolution_clock::now();
+            double time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            //std::cout << "evaluateBoard time: " << time << "\n";
+            return out; 
+        }
+			
 
 		int val = INT_MIN;
 		for (auto& n: node->vChildren){
@@ -82,7 +92,7 @@ public:
 			}
 	}
 
-	static int evaluateBoard(Piece* (*board)[8]){
+	static int evaluateBoard(Piece* (*board)[8], Color who2Move){
 		int out = 0;
 		std::vector<Piece*>
 			vBoardBlacks = misc::getColor(board, Color::BLACK),
@@ -149,37 +159,61 @@ public:
 		}
 		out -= 5 * total;
 
+        if (who2Move == Color::WHITE)
+            out *= -1;
+        
         // if there is 
 		return out;
 			
 	}
-    
-    
+    //std::osyncstream syncout(std::cout);
+    void evalNegamax(int start, int end, int* values, std::vector<Node*>& vChildren){
+        for (int i=start; i < end; i++){
+            int val = negamax(vChildren[i], DEPTH_SEARCH-1, Color::BLACK);
+            values[i] = val;
+            std::osyncstream(std::cout) << std::to_string(i) << ": " << std::to_string(val) <<
+            ", in vec: " << std::to_string(values[i]) << "\n";
+        }
+    }
 
 	void play(){
 		// vBlacks = getColor(m_board, Color::BLACK);
 		// vWhites = getColor(m_board, Color::WHITE);
 
 		Node currState(misc::boardCopy(m_board), nullptr);
-		constexpr int nDepth = 3;
-		// We're assuming that the last move been done by White
-		initTree(&currState, nDepth, Color::WHITE);
-		
-		int nMaxNodeIndex = -1;
-		int nMaxValue = INT_MIN;
-		for (int i=0; i<currState.vChildren.size(); i++){
-            if (i==9){
-                std::cout << "i==9";
-            }
-			const Node* node = currState.vChildren[i];
-			int nNodeVal = negamax(node,nDepth-1, Color::BLACK);
-			if (nNodeVal > nMaxValue){
-				nMaxValue = nNodeVal;
-				nMaxNodeIndex = i;
-			}
-		}
-		assert(nMaxNodeIndex > -1 && "Couldn't find any node for some reason");
 
+		// We're assuming that the last move been done by White
+		initTree(&currState, DEPTH_SEARCH, Color::WHITE);
+        int nChildren = currState.vChildren.size();
+		std::cout << "Moves Avail: " << nChildren << '\n';
+        
+        int *values = new int[nChildren];
+
+        
+        
+        auto start = std::chrono::high_resolution_clock::now();
+        int nThreads = std::min(MAX_THREADS , nChildren);
+        std::thread t[nThreads];
+        int len = nChildren / nThreads;
+		for (int i=0; i<nThreads - 1; i++){
+			t[i] = std::thread(&Computer::evalNegamax,this, i * len, (i + 1) * len, values, std::ref(currState.vChildren));
+		}
+        t[MAX_THREADS - 1] = std::thread(&Computer::evalNegamax,this, (nThreads - 1) * len , nChildren,  values, std::ref(currState.vChildren));
+
+        for (int i=0; i<nThreads; i++){
+            t[i].join();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        int time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "evaluation took: " << time << "\n";
+
+
+        int nMaxNodeIndex = std::max_element(values,values + nChildren) - values;
+        delete[] values;
+
+		assert(nMaxNodeIndex < nChildren && "Couldn't find any node for some reason");
+
+        
 		Move& move = *currState.vChildren[nMaxNodeIndex]->move;
 		m_board[move.vFrom.y][move.vFrom.x]->moveTo(move, m_board);
 		
