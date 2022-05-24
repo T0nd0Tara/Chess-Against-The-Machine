@@ -5,7 +5,7 @@ using the negamax-minimax algorythm
 # To Run
 ## on Linux
 ```
-g++ -I (dir to olc::pge header) main.cpp -o main -lX11 -lGL -lpthread -lpng -lstdc++fs -std=c++17 && ./main
+g++ -I (dir to olc::pge header) main.cpp -o main -lX11 -lGL -lpthread -lpng -lstdc++fs -std=c++20 && ./main
 ```
 
 ## on Windows
