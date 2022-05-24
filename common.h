@@ -20,6 +20,7 @@ struct Move {
 namespace misc{
     Piece* (*boardCopy(Piece* (*board)[8]))[8];
     std::vector<Piece*> getColor(Piece* board[8][8], Color c);
+    std::pair<std::vector<Piece*>, std::vector<Piece*>> getColors(Piece* board[8][8]);
     bool isCheck(Piece* (*board)[8], Color lastTurnBy);
     bool isMate(Piece* (*board)[8], Color lastTurnBy);
     bool illegitimateMove(Piece* (*board)[8], Move& move);
@@ -88,6 +89,19 @@ namespace misc{
 						
 		return vOut;
 	}
+    // return {whitePieces, blackPieces}
+    std::pair<std::vector<Piece*>, std::vector<Piece*>> getColors(Piece* board[8][8]){
+        std::pair<std::vector<Piece*>, std::vector<Piece*>> vOut;
+		for (int y=0; y<8; y++) for (int x=0; x<8; x++)
+                if (board[y][x]){
+                    if (board[y][x]->getCol() == Color::WHITE)
+                        vOut.first.push_back(board[y][x]);
+                    else
+                        vOut.second.push_back(board[y][x]);
+                }
+
+        return vOut;
+    }
     bool isCheck(Piece* (*board)[8], Color checkFor){
         std::vector<Piece*> vWhites = getColor(board,Color::WHITE);
         std::vector<Piece*> vBlacks = getColor(board,Color::BLACK);
