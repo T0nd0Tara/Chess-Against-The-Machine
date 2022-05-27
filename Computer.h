@@ -43,6 +43,7 @@ struct WorkingThread{
     std::mutex mux;
     std::atomic<int>* nAvailThreads = nullptr;
     int nId;
+    std::string sDebugInfo;
 
     bool bAlive = true, bWorking = false;
 
@@ -60,13 +61,14 @@ struct WorkingThread{
             std::unique_lock<std::mutex> lm(mux);
             cvStart.wait(lm);
         
-            std::osyncstream(std::cout) << "Thread #" << nId << ", Started\n";
+            std::osyncstream(std::cout) << "Thread #" << nId << ", Started: " << sDebugInfo << "\n";
             //(*nAvailThreads)--;
             //bWorking = true;
 
             func();
 
             std::osyncstream(std::cout) << "Thread #" << nId << ", Finished\n";
+            sDebugInfo = "";
             (*nAvailThreads)++;
             bWorking = false;
 
@@ -94,7 +96,7 @@ private:
     // insist means the function will not exit
     // if it didn't a free thread right away
     // return if thread start was successful
-    bool startThread(std::function<void()> f, bool insist = true){
+    bool startThread(std::function<void()> f, std::string info, bool insist = true){
         std::lock_guard<std::mutex> lm(mux);
         //std::cout << "startThread called\n";
 
@@ -114,6 +116,7 @@ private:
         std::cout << '\n';
         int id = vAvailThreads.back();
         vAvailThreads.pop_back();
+        t[id].sDebugInfo = info;
         t[id].bWorking = true;
         m_nAvailThreads--;
         std::osyncstream(std::cout) << "Starting thread #" << id << "\n";
@@ -170,7 +173,7 @@ public:
             };
             
             if (bBaseThreadsStarted)
-                if (startThread(func, false))
+                if (startThread(func, "vals[" +std::to_string(i)+"] = -negamax(node->vChildren[i], nDepth-1, opCol);",false))
                     continue;
             func();
 		}
@@ -306,16 +309,21 @@ public:
         bBaseThreadsStarted = false;
         assert(len > 0);
 		for (int i=0; i<nThreads - 1; i++){
-			startThread([=, this, &currState, &values](){evalNegamax(i*len, (i+1)*len, values, currState.vChildren);});
+			startThread([=, this, &currState, &values](){evalNegamax(i*len, (i+1)*len, values, currState.vChildren);},
+            "evalNegamax(i*len, (i+1)*len, values, currState.vChildren);");
 		}
-        startThread([=, this, &currState, &values](){evalNegamax((nThreads - 1) * len , nChildren, values, currState.vChildren);});
+        startThread([=, this, &currState, &values](){evalNegamax((nThreads - 1) * len , nChildren, values, currState.vChildren);},
+        "evalNegamax((nThreads - 1) * len , nChildren, values, currState.vChildren);");
         bBaseThreadsStarted = true;
         std::osyncstream(std::cout) << "started base threads\n";
         while (m_nAvailThreads < MAX_THREADS){}
 
         auto end = std::chrono::high_resolution_clock::now();
         int time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        std::cout << "evaluation took: " << time << "\n";
+        for (int i=0; i<nChildren; i++)
+            std::cout << values[i] << " ";
+        
+        std::cout << "\nevaluation took: " << time << "\n";
 
 
         int nMaxNodeIndex = std::max_element(values,values + nChildren) - values;
