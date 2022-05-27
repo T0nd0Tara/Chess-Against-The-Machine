@@ -2,6 +2,7 @@
 #include <vector>
 #include <mutex>
 #include <syncstream>
+#include <condition_variable>
 
 #include <olcPixelGameEngine.h>
 
@@ -35,15 +36,110 @@ struct Node{
 	}
 };
 
+struct WorkingThread{
+    std::thread th;
+    std::function<void()> func;
+    std::condition_variable cvStart, *cvFinishd;
+    std::mutex mux;
+    std::atomic<int>* nAvailThreads = nullptr;
+    int nId;
+
+    bool bAlive = true, bWorking = false;
+
+    void start(std::function<void()> f){
+        func.swap(f);
+
+        std::unique_lock<std::mutex> lm(mux);
+        cvStart.notify_one();
+    }
+
+    void loop(){
+
+        while (bAlive){
+        
+            std::unique_lock<std::mutex> lm(mux);
+            cvStart.wait(lm);
+        
+            std::osyncstream(std::cout) << "Thread #" << nId << ", Started\n";
+            //(*nAvailThreads)--;
+            //bWorking = true;
+
+            func();
+
+            std::osyncstream(std::cout) << "Thread #" << nId << ", Finished\n";
+            (*nAvailThreads)++;
+            bWorking = false;
+
+            //std::unique_lock<std::mutex> lm(mux);
+            //cvFinishd->notify_one();
+        }
+    }
+
+};
 
 class Computer{
 	Piece* (*m_board)[8];
 
-	std::vector<Piece*> vBlacks, vWhites;
+    //std::condition_variable m_cvThrFinished;
 
+    WorkingThread t[MAX_THREADS];
 
+    std::atomic<int> m_nAvailThreads;
+
+    bool bBaseThreadsStarted;
+
+private:
+    std::mutex mux;
+    std::vector<int> vAvailThreads;
+    // insist means the function will not exit
+    // if it didn't a free thread right away
+    // return if thread start was successful
+    bool startThread(std::function<void()> f, bool insist = true){
+        std::lock_guard<std::mutex> lm(mux);
+        //std::cout << "startThread called\n";
+
+        if (m_nAvailThreads == 0 && !insist) return false;
+        while (m_nAvailThreads == 0){}
+
+        if (vAvailThreads.size() == 0)
+            for (int i=0; i<MAX_THREADS; i++){
+                if (!t[i].bWorking)
+                    vAvailThreads.push_back(i);
+            }
+
+        std::cout << "vAvailThreads: ";
+        for (auto& n: vAvailThreads){
+            std::cout << n << " ";
+        }
+        std::cout << '\n';
+        int id = vAvailThreads.back();
+        vAvailThreads.pop_back();
+        t[id].bWorking = true;
+        m_nAvailThreads--;
+        std::osyncstream(std::cout) << "Starting thread #" << id << "\n";
+        t[id].start(f);
+
+        return true;
+    } 
 public:
-	Computer(Piece* (*board)[8]): m_board(board){}
+	Computer(Piece* (*board)[8]): m_board(board){
+        for (int i=0; i<MAX_THREADS; i++){
+            t[i].bAlive = true;
+            t[i].bWorking = false;
+            t[i].nId = i;
+            //t[i].cvFinishd = &m_cvThrFinished;
+            t[i].nAvailThreads = &m_nAvailThreads;
+            t[i].th = std::thread(&WorkingThread::loop, &t[i]);
+        }
+        m_nAvailThreads = MAX_THREADS;
+    }
+
+    ~Computer(){
+        for (int i=0; i<MAX_THREADS; i++){
+            t[i].bAlive = false;
+            t[i].start([](){});
+        }
+    }
 
 
 // function negamax(node, depth, color) is
@@ -53,26 +149,40 @@ public:
 // for each child of node do
 //     value := max(value, −negamax(child, depth − 1, −color))
 // return value
-	static int negamax(const Node* node, int nDepth, Color c){
+	int negamax(const Node* node, int nDepth, Color c){
 		Color opCol = (c == Color::WHITE)? Color::BLACK : Color::WHITE;
 		if (nDepth == 0 || misc::isMate(node->board, opCol)){
-            auto start = std::chrono::high_resolution_clock::now();
+            //auto start = std::chrono::high_resolution_clock::now();
             int out = evaluateBoard(node->board, c);
-            auto end = std::chrono::high_resolution_clock::now();
-            double time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-            //std::cout << "evaluateBoard time: " << time << "\n";
+            //auto end = std::chrono::high_resolution_clock::now();
+            //double time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            //std::osyncstream(std::cout) << "evaluateBoard time: " << time << "\n";
             return out; 
         }
 			
-
-		int val = INT_MIN;
-		for (auto& n: node->vChildren){
-			int childVal = -negamax(n, nDepth-1, opCol);
-			if (val < childVal){
-				val = childVal;
-			}
+        size_t nChildren = node->vChildren.size();
+		int vals[nChildren];
+        
+		for (int i=0; i<nChildren; i++){
+            vals[i] = INT_MIN;
+            auto func = [=, this, &vals, &node](){
+                vals[i] = -negamax(node->vChildren[i], nDepth-1, opCol);
+            };
+            
+            if (bBaseThreadsStarted)
+                if (startThread(func, false))
+                    continue;
+            func();
 		}
-		return (int)val;
+
+        // waiting for all the threads we are using in here to finish
+        std::osyncstream(std::cout) << "Waiting for threads to end\n";
+        while(std::find(vals, vals + nChildren, INT_MIN) != vals + nChildren){}
+        std::osyncstream(std::cout) << "Threads to ended\n";
+
+        int max_val = *std::max_element(vals, vals + nChildren);
+        //delete[] vals;
+		return max_val;
 	}
 
 	static void initTree(Node* node, int nDepth, Color moveBy){
@@ -94,9 +204,10 @@ public:
 
 	static int evaluateBoard(Piece* (*board)[8], Color who2Move){
 		int out = 0;
-		std::vector<Piece*>
-			vBoardBlacks = misc::getColor(board, Color::BLACK),
-			vBoardWhites = misc::getColor(board, Color::WHITE);
+		auto [vBoardWhites, vBoardBlacks] = misc::getColors(board);
+        // std::vector<Piece*>
+        //     vBoardWhites = misc::getColor(board, Color::WHITE),
+        //     vBoardBlacks = misc::getColor(board, Color::BLACK);
 
 		for (auto& p: vBoardBlacks){
 			out += p->getValue() // value
@@ -172,13 +283,11 @@ public:
             int val = negamax(vChildren[i], DEPTH_SEARCH-1, Color::BLACK);
             values[i] = val;
             std::osyncstream(std::cout) << std::to_string(i) << ": " << std::to_string(val) <<
-            ", in vec: " << std::to_string(values[i]) << "\n";
+            ". from: " << start << ", to: " << end << "\n";
         }
     }
 
 	void play(){
-		// vBlacks = getColor(m_board, Color::BLACK);
-		// vWhites = getColor(m_board, Color::WHITE);
 
 		Node currState(misc::boardCopy(m_board), nullptr);
 
@@ -193,16 +302,17 @@ public:
         
         auto start = std::chrono::high_resolution_clock::now();
         int nThreads = std::min(MAX_THREADS , nChildren);
-        std::thread t[nThreads];
         int len = nChildren / nThreads;
+        bBaseThreadsStarted = false;
+        assert(len > 0);
 		for (int i=0; i<nThreads - 1; i++){
-			t[i] = std::thread(&Computer::evalNegamax,this, i * len, (i + 1) * len, values, std::ref(currState.vChildren));
+			startThread([=, this, &currState, &values](){evalNegamax(i*len, (i+1)*len, values, currState.vChildren);});
 		}
-        t[MAX_THREADS - 1] = std::thread(&Computer::evalNegamax,this, (nThreads - 1) * len , nChildren,  values, std::ref(currState.vChildren));
+        startThread([=, this, &currState, &values](){evalNegamax((nThreads - 1) * len , nChildren, values, currState.vChildren);});
+        bBaseThreadsStarted = true;
+        std::osyncstream(std::cout) << "started base threads\n";
+        while (m_nAvailThreads < MAX_THREADS){}
 
-        for (int i=0; i<nThreads; i++){
-            t[i].join();
-        }
         auto end = std::chrono::high_resolution_clock::now();
         int time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "evaluation took: " << time << "\n";
