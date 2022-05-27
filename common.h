@@ -103,8 +103,7 @@ namespace misc{
         return vOut;
     }
     bool isCheck(Piece* (*board)[8], Color checkFor){
-        std::vector<Piece*> vWhites = getColor(board,Color::WHITE);
-        std::vector<Piece*> vBlacks = getColor(board,Color::BLACK);
+        auto [vWhites, vBlacks] = getColors(board);
 
 
         auto printBoard = [board](){
